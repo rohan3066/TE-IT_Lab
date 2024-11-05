@@ -1,101 +1,80 @@
-#include<stdio.h>
-#include<stdbool.h>
-#include<string.h>
-#include<limits.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-struct PageTable{
-    int frame_no;
-    int last_time_of_access;
-    bool valid;
-};
+pthread_mutex_t wr, mutex;
+int a = 10, readCount = 0;
 
-bool isPagePresent(struct PageTable PT[],int page){
-    if(PT[page].valid==1){
-        return true;
-    }
-    return false;
+void *writer(void *arg) {
+    long int num = (long int)arg;
+
+    // Lock wr variable to enter critical section
+    pthread_mutex_lock(&wr);
+    printf("\n Writer %ld is in critical section ", num);
+    printf("\n Writer %ld has written data as %d ", num, ++a);
+    sleep(1);
+    
+    // Release the lock
+    pthread_mutex_unlock(&wr);
+    printf("\n Writer %ld left critical section ", num);
+    
+    return NULL;  // Return statement added
 }
 
-void updatePageTable(struct PageTable PT[],int page,int fr_no,int status,int access_time){
-    PT[page].valid=status;
+void *reader(void *arg) {
+    long int num = (long int)arg;
 
-    if(status==1){
-        PT[page].last_time_of_access=access_time;
-        PT[page].frame_no=fr_no;
+    pthread_mutex_lock(&mutex);
+    readCount++;
+    pthread_mutex_unlock(&mutex);
+
+    if (readCount == 1) {
+        pthread_mutex_lock(&wr);
     }
+
+    printf("\n Reader %ld is in critical section ", num);
+    printf("\n Reader %ld is reading data %d ", num, a);
+    sleep(1);
+
+    pthread_mutex_lock(&mutex);
+    readCount--;
+    pthread_mutex_unlock(&mutex);
+
+    if (readCount == 0) {
+        pthread_mutex_unlock(&wr);
+    }
+
+    printf("\n Reader %ld left critical section ", num);
+    
+    return NULL;  // Return statement added
 }
 
-void printFrameContents(int frame[],int no_of_frames){
-    for(int i=0;i<no_of_frames;i++){
-        printf("Frame %d: %d\n",i+1,frame[i]);
+int main() {
+    pthread_t r[10], w[10];
+    long int i, j;
+    int nor, now;
 
+    // Initialize mutex variables
+    pthread_mutex_init(&wr, NULL);
+    pthread_mutex_init(&mutex, NULL);
+    
+    printf("Enter number of writers and readers: ");
+    scanf("%d %d", &nor, &now);  // Remove extra spaces
+
+    for (i = 0; i < nor; i++) {
+        pthread_create(&r[i], NULL, reader, (void *)i);
     }
-}
-
-void searchLRUPage(struct PageTable PT[],int frame[],int no_of_frames,int *LRU_page_index){
-    int min=INT_MAX;
-    for(int i=0;i<no_of_frames;i++){
-        if(PT[frame[i]].last_time_of_access<min){
-            min=PT[frame[i]].last_time_of_access;
-            *LRU_page_index=i;
-        }
-    }
-
-}
-
-
-int main(){
-    int i=0,n,no_of_frames,page_fault=0,current=0;
-    bool flag=false;
-    printf("\n Enter the no of page :\n");
-    scanf("%d",&n);
-    int referance_string[n];
-    printf("\n Enter the referance string :\n");
-    for(i=0;i<n;i++){
-        scanf("%d",&referance_string[i]);
+    for (j = 0; j < now; j++) {
+        pthread_create(&w[j], NULL, writer, (void *)j);  // Use w[j] instead of w[i]
     }
 
-    printf("\n Enter no of frames:");
-    scanf("%d",&no_of_frames);
-    int frame[no_of_frames];
-
-    for(int i=0;i<no_of_frames;i++){
-        frame[i]=-1;
+    for (i = 0; i < nor; i++) {
+        pthread_join(r[i], NULL);
     }
-    struct PageTable PT[50];
-    for(int i=0;i<50;i++){
-        PT[i].valid=0;
+    for (j = 0; j < now; j++) {
+        pthread_join(w[j], NULL);
     }
-    printf("\n ****The contents inside the frame array at different time****\n");
-    for(int i=0;i<n;i++){
-        if(!(isPagePresent(PT,referance_string[i]))){
-            page_fault++;
-            if(flag==false && current<no_of_frames){
-                frame[current]=referance_string[i];
-                printFrameContents(frame,no_of_frames);
-                updatePageTable(PT,referance_string[i],current,1,i);
-                current++;
-
-                if(current==no_of_frames){
-                    flag=true;
-
-                }
-            }
-            else{
-                int LRU_page_index;
-                searchLRUPage(PT,frame,no_of_frames,&LRU_page_index);
-                frame[LRU_page_index]=referance_string[i];
-                printFrameContents(frame,no_of_frames);
-                updatePageTable(PT,referance_string[i],LRU_page_index,1,i);
-
-            }
-            PT[referance_string[i]].last_time_of_access=i;
-        }
-    }
-
-    printf("\nTotal number of page faults = %d\n", page_fault);
-    printf("Page fault ratio = %.2f\n", (float)page_fault / n);
-    printf("Page hit ratio = %.2f\n", (float)(n - page_fault) / n);
 
     return 0;
 }
