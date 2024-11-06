@@ -1,12 +1,12 @@
 //C++ Program to Implement the SSTF Disk Scheduling Algorithm
 
-#include<iostream>
-#include<cstdlib> //for abs
-#include<climits>  //for INT_MAX
-#include<cstring> //for memset
-#include<vector>
-#include<iomanip>  // for manipulator
-//#include<bits/stdc++.h>
+// #include<iostream>
+// #include<cstdlib> //for abs
+// #include<climits>  //for INT_MAX
+// #include<cstring> //for memset
+// #include<vector>
+// #include<iomanip>  // for manipulator
+#include<bits/stdc++.h>
 using namespace std;
 
 
@@ -47,7 +47,7 @@ int applySSTFAlgo(vector<int> request_queue, int initial_pos,vector<bool> visite
 
 int main()
 {
-    cout << fixed << setprecision(2);
+   
     int total_cylinders,total_head_movement=0,initial_pos,n,completed=0,i;
     
     // *********** INPUT ********** 

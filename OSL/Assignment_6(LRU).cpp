@@ -1,9 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <climits>
-
 using namespace std;
-
 struct PageTable {
     int frame_no;            // Frame number in physical memory
     int last_time_of_access; // Last access time for LRU
@@ -32,7 +30,7 @@ void printFrameContents(const vector<int>& frame) {
 }
 
 // Function to find the least recently used (LRU) page index in the frame array
-void searchLRUPage(vector<PageTable>& PT, const vector<int>& frame, int& LRU_page_index) {
+void searchLRUPage(vector<PageTable>& PT, const vector<int>& frame, int & LRU_page_index) {
     int min_time = INT_MAX;
     for (size_t i = 0; i < frame.size(); i++) {
         if (PT[frame[i]].last_time_of_access < min_time) {
