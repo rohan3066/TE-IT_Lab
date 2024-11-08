@@ -1,96 +1,110 @@
-#include <iostream>
-#include <vector>
-#include <climits>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-struct PageTable {
-    int frame_no;            // Frame number in physical memory
-    int last_time_of_access; // Last access time for LRU
-    bool valid;              // Validity of the page (true if the page is in memory, false otherwise)
+struct Item {
+    int value;
+    int weight;
 };
 
-// Function to check if a page is present in the page table
-bool isPagePresent(vector<PageTable>& PT, int page) {
-    return PT[page].valid;
-}
+void merge(Item arr[], int left, int mid, int right) {
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
 
-// Function to update the page table with the given page, frame number, and access time
-void updatePageTable(vector<PageTable>& PT, int page, int fr_no, bool status, int access_time) {
-    PT[page].valid = status;
-    if (status) {
-        PT[page].last_time_of_access = access_time;
-        PT[page].frame_no = fr_no;
+    Item l[n1], r[n2];
+
+    for (int i = 0; i < n1; i++) {
+        l[i] = arr[left + i];
+    }
+
+    for (int j = 0; j < n2; j++) {
+        r[j] = arr[mid + 1 + j];
+    }
+
+    int i = 0, j = 0, k = left;
+
+    while (i < n1 && j < n2) {
+        double r1 = (double)l[i].value / (double)l[i].weight;
+        double r2 = (double)r[j].value / (double)r[j].weight;
+
+        if (r1 > r2) {
+            arr[k] = l[i];
+            i++;
+        } else {
+            arr[k] = r[j];
+            j++;
+        }
+        k++;
+    }
+
+    while (i < n1) {
+        arr[k] = l[i];
+        i++;
+        k++;
+    }
+
+    while (j < n2) {
+        arr[k] = r[j];
+        j++;
+        k++;
     }
 }
 
-// Function to print the current content of the frames
-void printFrameContents(const vector<int>& frame) {
-    for (size_t i = 0; i < frame.size(); i++) {
-        cout << "Frame " << i + 1 << ": " << frame[i] << endl;
+void mergeSort(Item arr[], int left, int right) {
+    if (left < right) {
+        int mid = (left) + (right - left) / 2;
+        mergeSort(arr, left, mid);
+        mergeSort(arr, mid + 1, right);
+        merge(arr, left, mid, right);
     }
 }
 
-// Function to find the least recently used (LRU) page index in the frame array
-void searchLRUPage(vector<PageTable>& PT, const vector<int>& frame, int & LRU_page_index) {
-    int min_time = INT_MAX;
-    for (size_t i = 0; i < frame.size(); i++) {
-        if (PT[frame[i]].last_time_of_access < min_time) {
-            min_time = PT[frame[i]].last_time_of_access;
-            LRU_page_index = i;
+double fractionnalKnap(Item arr[], int w, int n) {
+    mergeSort(arr, 0, n - 1);
+
+    int currWeight = 0;
+    double Finalvalue = 0;
+
+    for (int i = 0; i < n; i++) {
+        if (currWeight + arr[i].weight <= w) {
+            currWeight += arr[i].weight;
+            Finalvalue += arr[i].value;
+        } else {
+            int remain = w - currWeight;
+            Finalvalue += (arr[i].value / (double)arr[i].weight * (double)(remain));
+            break;
         }
     }
+    return Finalvalue;
 }
 
 int main() {
-    int n, no_of_frames, page_fault = 0, current = 0;
-    bool flag = false;
-
-    cout << "\nEnter the number of pages: ";
+    int n, weight;
+    cout << "Enter the number of items: ";
     cin >> n;
-    vector<int> reference_string(n);
 
-    cout << "\nEnter the reference string: ";
-    for (int& page : reference_string) {
-        cin >> page;
-    }
+    Item arr[n];
+    cout << "Enter the maximum weight of the knapsack: ";
+    cin >> weight;
 
-    cout << "\nEnter the number of frames: ";
-    cin >> no_of_frames;
-    vector<int> frame(no_of_frames, -1);  // Initialize frames to -1 (indicating empty frames)
-
-    vector<PageTable> PT(50, { -1, 0, false });  // Page table for up to 50 pages, initialized to invalid
-
-    cout << "\n**** Frame contents at different times ****\n";
-
+    cout << "Enter the value and weight of each item:\n";
     for (int i = 0; i < n; i++) {
-        if (!isPagePresent(PT, reference_string[i])) { // If page fault occurs
-            page_fault++;  // Increment page fault counter
-
-            if (!flag && current < no_of_frames) { // Fill empty frames if available
-                frame[current] = reference_string[i];
-                printFrameContents(frame); // Print current frame content
-                updatePageTable(PT, reference_string[i], current, true, i); // Update page table
-                current++;
-
-                if (current == no_of_frames) { // If all frames are filled, set flag to true
-                    flag = true;
-                }
-            } else { // Replace pages using LRU policy
-                int LRU_page_index;
-                searchLRUPage(PT, frame, LRU_page_index);
-                frame[LRU_page_index] = reference_string[i]; // Load new page into the LRU frame
-                printFrameContents(frame); // Print current frame content
-                updatePageTable(PT, reference_string[i], LRU_page_index, true, i); // Update page table for the new page
-            }
-            PT[reference_string[i]].last_time_of_access = i; // Update last access time
-        }
+        cout << "Item " << i + 1 << " - Value: ";
+        cin >> arr[i].value;
+        cout << "Item " << i + 1 << " - Weight: ";
+        cin >> arr[i].weight;
     }
 
-    // Print the results
-    cout << "\nTotal number of page faults = " << page_fault << endl;
-    cout << "Page fault ratio = " << static_cast<float>(page_fault) / n << endl;
-    cout << "Page hit ratio = " << static_cast<float>(n - page_fault) / n << endl;
+    double ans = fractionnalKnap(arr, weight, n);
+
+    cout << "\n|-------------------------------|\n";
+    cout << "| Item | Value | Weight |\n";
+    cout << "|-------------------------------|\n";
+    for (int i = 0; i < n; i++) {
+        cout << "| " << setw(4) << i + 1 << " | " << setw(5) << arr[i].value
+             << " | " << setw(6) << arr[i].weight << " |\n";
+    }
+    cout << "|-------------------------------|\n";
+    cout << "The maximum value achievable is: " << fixed << setprecision(2) << ans << endl;
 
     return 0;
 }
